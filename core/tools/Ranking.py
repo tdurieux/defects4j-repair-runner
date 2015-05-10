@@ -2,7 +2,9 @@ import re
 import os
 import json
 import datetime
+import collections
 from core.tools.Nopol import Nopol
+from core.Config import conf
 from math import sqrt
 
 class Ranking(Nopol):
@@ -35,7 +37,9 @@ class Ranking(Nopol):
                 "ef": ef,
                 "np": np,
                 "nf": nf,
-                "rank": rank,
+                "rank": {
+                    "ochiai": rank
+                },
                 "metrics": {
                     "gzoltar": float(i[2]),
                     "ochiai": (ef)/sqrt((ef+ep)*(ef+nf)),
@@ -43,7 +47,16 @@ class Ranking(Nopol):
                     "ample": abs((ef/float(ef+nf)) - (ep/float(ep+np)))
                 }
             }
-
+        rank = 0
+        suspiciousStatementsAmple = collections.OrderedDict(sorted(suspiciousStatements.items(), key=lambda t: t[1]['metrics']['ample'], reverse=True))
+        for i in suspiciousStatementsAmple:
+            rank += 1
+            suspiciousStatementsAmple[i]['rank']['ample'] = rank
+        rank = 0
+        suspiciousStatementsTarantula = collections.OrderedDict(sorted(suspiciousStatements.items(), key=lambda t: t[1]['metrics']['tarantula'], reverse=True))
+        for i in suspiciousStatementsTarantula:
+            rank += 1
+            suspiciousStatementsTarantula[i]['rank']['tarantula'] = rank
         executedTest = None
         successfulTest = None
         failedTest = None
