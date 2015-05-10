@@ -1,4 +1,4 @@
-#/bin/python
+#!/usr/bin/env python
 
 import argparse
 from core.projects.LangProject import LangProject
