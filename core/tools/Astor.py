@@ -69,9 +69,9 @@ class Astor(Tool):
 				self.parseLog(slittedLog[1], project, id)
 			else:
 				slittedLog = log.split('End Repair Loops:')
-					if(len(slittedLog) > 1):
-						print slittedLog[1]
-						self.parseLog(slittedLog[1], project, id)
+				if(len(slittedLog) > 1):
+					print slittedLog[1]
+					self.parseLog(slittedLog[1], project, id)
 		
 
 	def run(self, 
