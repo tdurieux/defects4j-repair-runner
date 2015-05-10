@@ -13,7 +13,7 @@ sys.setdefaultencoding('Cp1252')
 def repeat_to_length(string_to_expand, length):
    return (string_to_expand * ((length/len(string_to_expand))+1))[:length]
 
-tools = ["NopolPC", "NopolC", "Ranking", "Brutpol", "Genprog", "Kali"]
+tools = ["NopolPC", "NopolC", "Ranking", "Genprog", "Kali"]
 
 root = conf.resultsRoot
 resultsAll = {}
@@ -88,32 +88,96 @@ resultsAllFile.write(json.dumps(resultsAll, sort_keys=True))
 resultsAllFile.close()
 
 count = {}
-result = ""
+result = "# Summary\n\n"
 body = ""
-line = "BugId | "
+line = "BugId             | "
 for tool in tools:
 	if tool == "Ranking":
 		continue
 	line += "%s | " % tool
-result += "%sTotal\n----- | " % (line)
+result += "%sTotal\n%s | " % (line, repeat_to_length("-", 17))
 for tool in tools:
 	if tool == "Ranking":
 		continue
 	result += "%s | " % repeat_to_length("-", len(tool)) 
-result += "-----\n"
+result += "%s\n" % repeat_to_length("-", 6)
+fixedBugs = 0
+totalBugs = 0
+for project in resultsAll:
+	smallName = project[0]
+	for bugId in resultsAll[project]:
+		totalBugs += 1
+		line = "[%s%d](#%s-%s)" % (smallName, bugId, project.lower(), bugId)
+		line = "%s%s| " % (line, repeat_to_length(" ", 18 - len(line)))
+		lineCount = 0
+		for tool in tools:
+			if tool == "Ranking":
+				continue
+			if(tool in resultsAll[project][bugId]):
+				if ("patch" in resultsAll[project][bugId][tool] and resultsAll[project][bugId][tool]["patch"]):
+					line += "Yes%s" % repeat_to_length(" ", len(tool) - 3)
+					lineCount += 1
+					if(not tool in count):
+						count[tool] = 1
+					else:
+						count[tool] += 1
+				elif ("operations" in resultsAll[project][bugId][tool] and len(resultsAll[project][bugId][tool]["operations"]) > 0):
+					line += "Yes%s" % repeat_to_length(" ", len(tool) - 3)
+					lineCount += 1
+					if(not tool in count):
+						count[tool] = 1
+					else:
+						count[tool] += 1
+				else:
+					line += "No%s" % repeat_to_length(" ", len(tool) - 2)
+			else:
+				line += "%s" % repeat_to_length(" ", len(tool))
+			line += " | "
+		if lineCount > 0:
+			result += "%s%d\n" % (line, lineCount)
+			fixedBugs += 1
+
+totalLine = "Total %s| " % repeat_to_length(" ", 12)
+total = 0
+for tool in tools:
+	if tool == "Ranking":
+		continue
+	if(tool in count):
+		total += count[tool]
+		tmp = "%d (%d%%)" % (count[tool], float(count[tool])/float(totalBugs)*100)
+		totalLine += "%s%s" % (tmp, repeat_to_length(" ", len(tool) - len(tmp)))
+	else:
+		totalLine += "0%s" % repeat_to_length(" ", len(tool) - 1)
+	totalLine += " | "
+totalLine += "%d\n"  % (total)
+totalLine += "Fixed bugs: %d/%d (%d%%)\n\n" % (fixedBugs, totalBugs, float(fixedBugs)/float(totalBugs)*100)
+result += totalLine
+
+result += "# Complete data\n\n"
+line = "BugId             | "
+for tool in tools:
+	if tool == "Ranking":
+		continue
+	line += "%s | " % tool
+result += "%sTotal\n%s | " % (line, repeat_to_length("-", 17))
+for tool in tools:
+	if tool == "Ranking":
+		continue
+	result += "%s | " % repeat_to_length("-", len(tool)) 
+result += "%s\n" % repeat_to_length("-", 6)
 for project in resultsAll:
 	smallName = project[0]
 	for bugId in resultsAll[project]:
 		line = "[%s%d](#%s-%s)" % (smallName, bugId, project.lower(), bugId)
-		line = "%s%s| " % (line, repeat_to_length(" ", 6 - len(line)))
+		line = "%s%s| " % (line, repeat_to_length(" ", 18 - len(line)))
 		body += "# %s %s\n\n\n" % (project, bugId)
 		lineCount = 0
 
 		if str(bugId) in rankingAll[project]:
 			if 'executedTest' in rankingAll[project][str(bugId)]:
-				body += "Nb Executed tests: %d\n\n" % rankingAll[project][str(bugId)]['executedTest']
+				body += "Nb Executed tests: %s\n\n" % rankingAll[project][str(bugId)]['executedTest']
 			if 'failedTest' in rankingAll[project][str(bugId)]:
-				body += "Nb Failing tests: %d\n\n" % rankingAll[project][str(bugId)]['failedTest']
+				body += "Nb Failing tests: %s\n\n" % rankingAll[project][str(bugId)]['failedTest']
 			if 'failedTestDetails' in rankingAll[project][str(bugId)]:
 				for test in rankingAll[project][str(bugId)]['failedTestDetails']:
 					body += ">\t%s#%s\n" % (test['class'], test['method'])
@@ -133,8 +197,9 @@ for project in resultsAll:
 				elif ("patch" in resultsAll[project][bugId][tool] and resultsAll[project][bugId][tool]["patch"]):
 					body += "## %s \n\n" % (tool)
 					lineKey = "%s:%d" % (resultsAll[project][bugId][tool]['patchLocation']["className"], resultsAll[project][bugId][tool]['patchLocation']["line"])
-					if str(bugId) in  rankingAll[project] and 'suspicious' in rankingAll[project][str(bugId)]:
-						body += "%s (Suspicious rank: %d)\n" % (lineKey,  rankingAll[project][str(bugId)]['suspicious'][lineKey]['rank'])
+					if str(bugId) in  rankingAll[project] and 'suspicious' in rankingAll[project][str(bugId)] and lineKey in rankingAll[project][str(bugId)]['suspicious']:
+						rank = rankingAll[project][str(bugId)]['suspicious'][lineKey]['rank']
+						body += "%s (Suspicious rank: %d (Ochiai), %d (Ample), %d (Tarantula))\n" % (lineKey, rank['ochiai'], rank['ample'], rank['tarantula'] )
 					else:
 						body += "%s\n" % (lineKey)
 					body += "```Java\n%s\n```\n\n" % (resultsAll[project][bugId][tool]["patch"])
@@ -144,16 +209,13 @@ for project in resultsAll:
 					body += "Grid5000 node: %s\n\n" % resultsAll[project][bugId][tool]['node']
 					line += "Yes%s" % repeat_to_length(" ", len(tool) - 3)
 					lineCount += 1
-					if(not tool in count):
-						count[tool] = 1
-					else:
-						count[tool] += 1
 				elif ("operations" in resultsAll[project][bugId][tool] and len(resultsAll[project][bugId][tool]["operations"]) > 0):
 					body += "## %s \n\n" % (tool)
 					for operation in resultsAll[project][bugId][tool]["operations"]:
 						lineKey = "%s:%d" % (operation['patchLocation']["className"], operation['patchLocation']["line"])
-						if str(bugId) in  rankingAll[project] and 'suspicious' in rankingAll[project][str(bugId)]:
-							body += "%s (Suspicious rank: %d)\n" % (lineKey,  rankingAll[project][str(bugId)]['suspicious'][lineKey]['rank'])
+						if str(bugId) in  rankingAll[project] and 'suspicious' in rankingAll[project][str(bugId)] and lineKey in rankingAll[project][str(bugId)]['suspicious']:
+							rank = rankingAll[project][str(bugId)]['suspicious'][lineKey]['rank']
+							body += "%s (Suspicious rank: %d (Ochiai), %d (Ample), %d (Tarantula))\n" % (lineKey, rank['ochiai'], rank['ample'], rank['tarantula'] )
 						else:
 							body += "%s\n" % (lineKey)
 						body += "```Java\n%s\n```\n\n" % (operation["patch"])
@@ -162,28 +224,13 @@ for project in resultsAll:
 					body += "Grid5000 node : %s\n\n" % resultsAll[project][bugId][tool]['node']
 					line += "Yes%s" % repeat_to_length(" ", len(tool) - 3)
 					lineCount += 1
-					if(not tool in count):
-							count[tool] = 1
-					else:
-							count[tool] += 1
 				else:
 					line += "No%s" % repeat_to_length(" ", len(tool) - 2)
 			else:
 				line += "%s" % repeat_to_length(" ", len(tool))
 			line += " | "
 		result += "%s%d\n" % (line, lineCount)
-	line = "Total | "
-total = 0
-for tool in tools:
-	if tool == "Ranking":
-		continue
-	if(tool in count):
-		total += count[tool]
-		line += "%d%s" % (count[tool], repeat_to_length(" ", len(tool) - len(str(count[tool]))))
-	else:
-		line += "0%s" % repeat_to_length(" ", len(tool) - 1)
-	line += " | "
-result += "%s%d\n" % (line, total)
+result += totalLine
 print "%s\n\n\n%s" % (result,body)
 
 resultsAllFile = open(resultsMdPath, "w")
