@@ -13,8 +13,9 @@ from core.tools.NopolC import NopolC
 from core.tools.Astor import Astor
 from core.tools.Kali import Kali
 
+from core.Config import conf
 
-root = os.path.join("results") 
+root = conf.resultsRoot
 
 for project in os.listdir(root):
 	projectCl = MathProject()
