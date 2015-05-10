@@ -43,8 +43,12 @@ class Nopol(Tool):
         cmd += ' --source ' + source 
         cmd += ' --classpath ' + classpath + ';'
         cmd += 'rm -rf ' + workdir +  ';'
+        logPath = os.path.join(project.logPath, str(id), self.name, "stdout.log.full")
+        log = file(logPath, 'w')
         print cmd
-        return subprocess.check_output(cmd, shell=True)
+        subprocess.call(cmd, shell=True, stdout=log)
+        with open(logPath) as data_file:
+            return data_file.read()
 
 
     def parseLog(self, log, project, id):

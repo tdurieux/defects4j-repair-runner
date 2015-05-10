@@ -57,17 +57,22 @@ class Astor(Tool):
 		#cmd += 'cp -r outputMutation/ ' + os.path.dirname(path) + ';'
 		cmd += 'rm -rf ' + workdir +  ';'
 
+		logPath = os.path.join(project.logPath, str(id), self.name, "stdout.log.full")
+		logFile = file(logPath, 'w')
 		print cmd
-		log = subprocess.check_output(cmd, shell=True)
-		slittedLog = log.split('Solution details')
-		if(len(slittedLog) > 1):
-			print slittedLog[1]
-			self.parseLog(slittedLog[1], project, id)
-		else:
-			slittedLog = log.split('End Repair Loops:')
-                	if(len(slittedLog) > 1):
-                        	print slittedLog[1]
-                        	self.parseLog(slittedLog[1], project, id)
+		subprocess.call(cmd, shell=True, stdout=logFile)
+		with open(logPath) as data_file:
+			log = data_file.read()
+			slittedLog = log.split('Solution details')
+			if(len(slittedLog) > 1):
+				print slittedLog[1]
+				self.parseLog(slittedLog[1], project, id)
+			else:
+				slittedLog = log.split('End Repair Loops:')
+					if(len(slittedLog) > 1):
+						print slittedLog[1]
+						self.parseLog(slittedLog[1], project, id)
+		
 
 	def run(self, 
 		project, 
@@ -134,7 +139,7 @@ class Astor(Tool):
 			'timeEvaluation': timeEvaluation,
 			'timeTotal': timeTotal,
 			'node': self.getHostname(),
-            'date': datetime.datetime.now().isoformat()
+			'date': datetime.datetime.now().isoformat()
 		}
 		reg = re.compile('#([a-zA-Z]+) *: *([0-9]+)')
 		m = reg.findall(log)
