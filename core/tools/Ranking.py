@@ -74,6 +74,111 @@ class Ranking(Nopol):
         if m:
             executedTest = int(m.group(1))
 
+        patches = []
+        humanPatchpath = os.path.join(conf.defects4jRoot, "framework/projects", project.name, "patches",  "%d.src.patch" % id)
+        regexSource = re.compile(r'^--- (?P<filename>[^\t\n]+)(?:\t(?P<timestamp>[^\n]+))?')
+        regexDest = re.compile(r'^\+\+\+ (?P<filename>[^\t\n]+)(?:\t(?P<timestamp>[^\n]+))?')
+        regexAdd = re.compile("^-.*")
+        regexChange = re.compile("^\+.*")
+        regexHunk = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))?\ @@[ ]?(.*)")
+        regexHunkLine = re.compile(r'^(?P<line_type>[- \+\\])(?P<value>.*)')
+        with open(humanPatchpath) as data_patch:
+            current_file = None
+            source_file = None
+            source_timestamp = None
+            target_file = None
+            target_timestamp = None
+            for line in data_patch:
+                is_source_filename = regexSource.match(line)
+                if is_source_filename:
+                    source_file = is_source_filename.group('filename')
+                    source_timestamp = is_source_filename.group('timestamp')
+                    # reset current file
+                    current_file = None
+                    continue
+                # check for target file header
+                is_target_filename = regexDest.match(line)
+                if is_target_filename:
+                    if current_file is not None:
+                        continue
+                    target_file = is_target_filename.group('filename')
+                    target_timestamp = is_target_filename.group('timestamp')
+                    # add current file to PatchSet
+                    current_file = {
+                        'source_file': source_file.replace(".java", "").replace("/", "."),
+                        'target_file': target_file.replace(".java", "").replace("/", "."),
+                        'source_timestamp': source_timestamp,
+                        'target_timestamp': target_timestamp,
+                        'hunks': []
+                    }
+                    patches.append(current_file)
+                    continue
+
+                # check for hunk header
+                is_hunk_header = regexHunk.match(line)
+                if is_hunk_header:
+                    if current_file is None:
+                        continue
+                    hunk = {
+                        'src_start': int(is_hunk_header.group(1)),
+                        'src_len': int(is_hunk_header.group(2)),
+                        'tgt_start': int(is_hunk_header.group(3)),
+                        'tgt_len': int(is_hunk_header.group(4)),
+                        'section_header': is_hunk_header.group(5),
+                        'changes': []
+                    }
+                    source_line_no = hunk['src_start']
+                    target_line_no = hunk['tgt_start']
+                    current_file['hunks'].append(hunk)
+                    current_line = None
+                    for line in data_patch:
+                        is_hunk_line = regexHunkLine.match(line)
+                        if is_hunk_line is None:
+                            break
+                        line_type = is_hunk_line.group('line_type')
+                        value = is_hunk_line.group('value').strip()
+                        if line_type[0] == '+':
+                            if current_line is None or target_line_no != current_line['line']:
+                                current_line = {
+                                    'target': value,
+                                    'original': '',
+                                    'line': target_line_no
+                                }
+                                hunk['changes'].append(current_line);
+                                target_line_no += 1
+                                continue
+                            current_line['target'] = value
+                            target_line_no += 1
+                        elif line_type[0] == '-':
+                            current_line = {
+                                'original': value,
+                                'target': '',
+                                'line': source_line_no
+                            }
+                            hunk['changes'].append(current_line);
+                            source_line_no += 1
+                        else:
+                            target_line_no += 1
+                            source_line_no += 1
+                            current_line = None
+                        if (source_line_no == (hunk['src_start'] + hunk['src_len']) and 
+                            target_line_no == (hunk['tgt_start'] + hunk['tgt_len'])):
+                            break
+        modifiedLines = []
+        for patchedFile in patches:
+            for hunk in patchedFile['hunks']:
+                for change in hunk['changes']:
+                    if change['original'] is not None and change['original'] != '':
+                        if (change['original'][0] == '*' or 
+                            change['original'] == '/**' or 
+                            change['original'] == '**/'):
+                            continue
+                        key = "%s:%d" % (patchedFile['source_file'], change['line'])
+                        modifiedLines.append({
+                            'class': patchedFile['source_file'],
+                            'line': change['line']
+                            })
+
         reg = re.compile('([0-9a-zA-Z\.\-_\$]+)#([^\n]+)')
         m = reg.findall(log)
         for i in m:
@@ -88,7 +193,9 @@ class Ranking(Nopol):
             'successfulTest': successfulTest,
             'failedTest': failedTest,
             'failedTestDetails': failedTestDetails,
+            'nbsuspicious': len(suspiciousStatements),
             'suspicious': suspiciousStatements,
+            'modifiedLines': modifiedLines,
             'node': self.getHostname(),
             'date': datetime.datetime.now().isoformat()
         }
