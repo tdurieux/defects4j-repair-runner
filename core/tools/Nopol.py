@@ -42,6 +42,8 @@ class Nopol(Tool):
         cmd += ' --complianceLevel ' + str(project.complianceLevel[str(id)]['source'])
         cmd += ' --source ' + source 
         cmd += ' --classpath ' + classpath + ';'
+        cmd += 'echo "\n\nNode: `hostname`\n";'
+        cmd += 'echo "\nDate: `date`\n";'
         cmd += 'rm -rf ' + workdir +  ';'
         logPath = os.path.join(project.logPath, str(id), self.name, "stdout.log.full")
         log = file(logPath, 'w')
