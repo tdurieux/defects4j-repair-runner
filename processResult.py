@@ -19,10 +19,13 @@ root = conf.resultsRoot
 resultsAll = {}
 resultsAllPath = os.path.join(root, "results.json")
 resultsMdPath = os.path.join(root, "results.md")
+resultsTexPath = os.path.join(root, "results.tex")
 rankingAll = {}
 for project in os.listdir(root):
 	projectPath = os.path.join(root, project) 
 	if os.path.isfile(projectPath):
+		continue
+	if project == ".git":
 		continue
 	resultsProject = {}
 	resultsProjectPath = os.path.join(projectPath, "results.json")
@@ -91,11 +94,21 @@ count = {}
 result = "# Summary\n\n"
 body = ""
 line = "BugId             | "
+texTable = """\\begin{table}[!t]
+\label{tab:bugs_summary}
+\centering
+\\resizebox{0.5\\textwidth}{!}{
+\setlength\\tabcolsep{0.3 ex}
+\\begin{tabular}{|c|c|c|c|c|c|}
+\hline 
+Bug id & """
 for tool in tools:
 	if tool == "Ranking":
 		continue
 	line += "%s | " % tool
+	texTable += "%s & " % tool
 result += "%sTotal\n%s | " % (line, repeat_to_length("-", 17))
+texTable += "Total\\\\\n\\hline\n"
 for tool in tools:
 	if tool == "Ranking":
 		continue
@@ -109,6 +122,8 @@ for project in resultsAll:
 		totalBugs += 1
 		line = "[%s%d](#%s-%s)" % (smallName, bugId, project.lower(), bugId)
 		line = "%s%s| " % (line, repeat_to_length(" ", 18 - len(line)))
+		texLineTable = "%s%d"  % (smallName, bugId)
+		texLineTable = "%s%s& " % (texLineTable, repeat_to_length(" ", 7 - len(texLineTable)))
 		lineCount = 0
 		for tool in tools:
 			if tool == "Ranking":
@@ -116,6 +131,7 @@ for project in resultsAll:
 			if(tool in resultsAll[project][bugId]):
 				if ("patch" in resultsAll[project][bugId][tool] and resultsAll[project][bugId][tool]["patch"]):
 					line += "Yes%s" % repeat_to_length(" ", len(tool) - 3)
+					texLineTable += "Fixed%s" % repeat_to_length(" ", len(tool) - 5)
 					lineCount += 1
 					if(not tool in count):
 						count[tool] = 1
@@ -123,6 +139,7 @@ for project in resultsAll:
 						count[tool] += 1
 				elif ("operations" in resultsAll[project][bugId][tool] and len(resultsAll[project][bugId][tool]["operations"]) > 0):
 					line += "Yes%s" % repeat_to_length(" ", len(tool) - 3)
+					texLineTable += "Fixed%s" % repeat_to_length(" ", len(tool) - 5)
 					lineCount += 1
 					if(not tool in count):
 						count[tool] = 1
@@ -130,14 +147,20 @@ for project in resultsAll:
 						count[tool] += 1
 				else:
 					line += "No%s" % repeat_to_length(" ", len(tool) - 2)
+					texLineTable += "--%s" % repeat_to_length(" ", len(tool) - 2)
 			else:
 				line += "%s" % repeat_to_length(" ", len(tool))
+				texLineTable += "%s" % repeat_to_length(" ", len(tool))
 			line += " | "
+			texLineTable += " & "
 		if lineCount > 0:
 			result += "%s%d\n" % (line, lineCount)
+			texTable += "%sFixed\\\\\n" % (texLineTable)
 			fixedBugs += 1
+	texTable += "\hline\n"
 
 totalLine = "Total %s| " % repeat_to_length(" ", 12)
+texLineTable = "Total  & "
 total = 0
 for tool in tools:
 	if tool == "Ranking":
@@ -146,11 +169,22 @@ for tool in tools:
 		total += count[tool]
 		tmp = "%d (%d%%)" % (count[tool], float(count[tool])/float(totalBugs)*100)
 		totalLine += "%s%s" % (tmp, repeat_to_length(" ", len(tool) - len(tmp)))
+		texLineTable += "%d (%d\\%%)" % (count[tool], float(count[tool])/float(totalBugs)*100)
 	else:
 		totalLine += "0%s" % repeat_to_length(" ", len(tool) - 1)
+		texLineTable += "0%s" % (tmp, repeat_to_length(" ", len(tool) - 1))
 	totalLine += " | "
+	texLineTable += " & "
 totalLine += "%d\n"  % (total)
 totalLine += "Fixed bugs: %d/%d (%d%%)\n\n" % (fixedBugs, totalBugs, float(fixedBugs)/float(totalBugs)*100)
+texLineTable += "%d (%d\\%%)\\\\\n"  % (fixedBugs, float(fixedBugs)/float(totalBugs)*100)
+texTable += texLineTable
+texTable += """\hline 
+\end{tabular}%
+}
+\caption{Experimental results on repairing the bugs of the Defects4J benchmarks with 4 different repair approaches.}
+\end{table}
+"""
 result += totalLine
 
 result += "# Complete data\n\n"
@@ -231,8 +265,12 @@ for project in resultsAll:
 			line += " | "
 		result += "%s%d\n" % (line, lineCount)
 result += totalLine
-print "%s\n\n\n%s" % (result,body)
+print result
 
 resultsAllFile = open(resultsMdPath, "w")
 resultsAllFile.write("%s\n\n\n%s" % (result,body))
 resultsAllFile.close()
+
+resultsTexFile = open(resultsTexPath, "w")
+resultsTexFile.write(texTable)
+resultsTexFile.close()
