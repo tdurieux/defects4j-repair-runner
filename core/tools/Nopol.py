@@ -87,7 +87,7 @@ class Nopol(Tool):
             line = int(m.group(2))
             patchType = m.group(3)
             patch = m.group(4)
-        m = re.search('Node: (.+)', log)
+        m = re.search('Node: ([a-zA-Z0-9\-\.]+)', log)
         if m:
             node = m.group(1)
         m = re.search('Date: (.+)', log)
