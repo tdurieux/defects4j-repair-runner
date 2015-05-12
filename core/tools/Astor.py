@@ -85,6 +85,9 @@ class Astor(Tool):
 		programVariant = None
 		timeEvaluation = None
 		timeTotal = None
+		date = datetime.datetime.now().isoformat()
+		node = self.getHostname()
+
 		m = re.search('ProgramVariant ([0-9]+)', log)
 		if m:
 			programVariant = m.group(1)
@@ -94,6 +97,12 @@ class Astor(Tool):
 		m = re.search('Time Total\(ms\): ([0-9]+)', log)
 		if m:
 			timeTotal = m.group(1)
+		m = re.search('Node: (.+)', log)
+		if m:
+			node = m.group(1)
+		m = re.search('Date: (.+)', log)
+		if m:
+			date = m.group(1)
 
 		operations = []
 
@@ -140,8 +149,8 @@ class Astor(Tool):
 			'timeEvaluation': timeEvaluation,
 			'timeEvaluation': timeEvaluation,
 			'timeTotal': timeTotal,
-			'node': self.getHostname(),
-			'date': datetime.datetime.now().isoformat()
+			'node': node,
+			'date': date
 		}
 		reg = re.compile('#([a-zA-Z]+) *: *([0-9]+)')
 		m = reg.findall(log)

@@ -54,7 +54,12 @@ for project in os.listdir(root):
 			else: 
 				continue
 			logToolPath = os.path.join(toolPath, "stdout.log")
+			resultsPath = os.path.join(toolPath, "results.json")
+			if os.path.exists(resultsPath):
+				os.remove(resultsPath)
 			if os.path.exists(logToolPath):
 				with open(logToolPath) as data_file:
 					log = data_file.read()
+					if len(log) == 0:
+						continue
 					toolCl.parseLog(log, projectCl, int(bugId))

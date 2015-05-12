@@ -63,6 +63,8 @@ class Nopol(Tool):
         line = None
         patchType = None
         patch = None
+        date = datetime.datetime.now().isoformat()
+        node = self.getHostname()
 
         m = re.search('Nb Statements Analyzed : ([0-9]+)', log)
         if m:
@@ -85,6 +87,12 @@ class Nopol(Tool):
             line = int(m.group(2))
             patchType = m.group(3)
             patch = m.group(4)
+        m = re.search('Node: (.+)', log)
+        if m:
+            node = m.group(1)
+        m = re.search('Date: (.+)', log)
+        if m:
+            date = m.group(1)
         
         results = {
             'nbStatement': nbStatement,
@@ -98,8 +106,8 @@ class Nopol(Tool):
             },
             'patchType': patchType,
             'patch': patch,
-            'node': self.getHostname(),
-            'date': datetime.datetime.now().isoformat()
+            'node': node,
+            'date': date
         }
         path = os.path.join(project.logPath, str(id), self.name, "results.json")
         if not os.path.exists(os.path.dirname(path)):
