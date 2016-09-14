@@ -1,6 +1,6 @@
 {
 	"name": "Astor",
 	"version": "0.0.2",
-	"jar": "~/astor/astor-0.0.2-SNAPSHOT-jar-with-dependencies.jar",
+	"jar": "<defects4j-repair>/libs/astor.jar",
 	"main": "fr.inria.main.evolution.MainjGenProg"
 }

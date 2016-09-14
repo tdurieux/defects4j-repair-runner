@@ -1,12 +1,18 @@
+import os
 from os.path import expanduser
 
 class Config(object):
-	"""docstring for Config"""
+	"""Runner configurations"""
 	def __init__(self):
+		defects4jRepairRoot = os.path.join(os.path.dirname(__file__),'../../../' )
+
+		self.defects4jRepairRoot = defects4jRepairRoot
 		self.projectsRoot = expanduser("~/projects")
 		self.defects4jRoot = expanduser("~/defects4j")
-		self.resultsRoot = expanduser("~/results")
-		self.z3Root = expanduser("~/nopol/z3-x64-debian-7.7/bin/")
+		self.resultsRoot = os.path.join(defects4jRepairRoot, "results/2016-may")
+		self.z3Root = os.path.join(defects4jRepairRoot, "libs", "z3")
 		self.javaHome = expanduser("/usr/lib/jvm/java-1.7.0-openjdk-amd64/bin/")
+		self.javaHome8 = expanduser("/usr/lib/jvm/java-1.8.0-openjdk-amd64/bin/")
+		self.javaArgs = "-Xmx4096m"
 
 conf = Config()

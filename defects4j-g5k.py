@@ -5,10 +5,13 @@ from core.projects.LangProject import LangProject
 from core.projects.MathProject import MathProject
 from core.projects.ChartProject import ChartProject
 from core.projects.TimeProject import TimeProject
+from core.projects.ClosureProject import ClosureProject
 
 from core.tools.Ranking import Ranking
 from core.tools.NopolPC import NopolPC
 from core.tools.NopolC import NopolC
+from core.tools.BrutpolPC import BrutpolPC
+from core.tools.BrutpolC import BrutpolC
 from core.tools.Astor import Astor
 from core.tools.Kali import Kali
 
@@ -22,6 +25,7 @@ def initParser():
     parser.add_argument('-projects', nargs='+', required=True, help='Which project (all, math, lang, time)')
     parser.add_argument('-tools', nargs='+', required=True, help='Which tool (all, nopol, ranking, ...)')
     parser.add_argument('-id', nargs='+', help='Bug id')
+    parser.add_argument('--timeout', required=False, help='Node timeout')
     parser.add_argument('--with-angelic', action='store_true', default=False, help='Run only bug with angelic')
     return parser.parse_args()
 
@@ -34,6 +38,7 @@ for project in args.projects:
         projects.append(LangProject())
         projects.append(MathProject())
         projects.append(TimeProject())
+        projects.append(ClosureProject())
     elif project.lower() == "chart":
         projects.append(ChartProject())
     elif project.lower() == "lang":
@@ -42,6 +47,8 @@ for project in args.projects:
         projects.append(MathProject())
     elif project.lower() == "time":
         projects.append(TimeProject())
+    elif project.lower() == "closure":
+        projects.append(ClosureProject())
 
 tools = []
 for tool in args.tools:
@@ -50,6 +57,8 @@ for tool in args.tools:
         tools.append(NopolC())
         tools.append(Astor())
         tools.append(Kali())
+        tools.append(BrutpolPC())
+        tools.append(BrutpolC())
     elif tool.lower() == "nopol":
         tools.append(NopolPC())
         tools.append(NopolC())
@@ -59,14 +68,19 @@ for tool in args.tools:
         tools.append(Ranking())    
     elif tool.lower() == "nopolc":
         tools.append(NopolC())
+    elif tool.lower() == "brutpol":
+        tools.append(BrutpolPC())
+        tools.append(BrutpolC())
+    elif tool.lower() == "brutpolpc":
+        tools.append(BrutpolPC())
+    elif tool.lower() == "brutpolc":
+        tools.append(BrutpolC())
     elif tool.lower() == "genprog":
         tools.append(Astor())
     elif tool.lower() == "kali":
         tools.append(Kali())
 
 tasks = []
-
-print projects, tools, tasks
 
 for project in projects:
     for tool in tools:
@@ -82,8 +96,6 @@ for project in projects:
             for i in range(1, project.nbBugs + 1):
                 task = RunnerTask(tool, project, int(i))
                 tasks.append(task)
-
-print len(tasks)
-
+                
 nodeHandler = NodeHandler(tasks)
-nodeHandler.run()
+nodeHandler.run(args.timeout)
