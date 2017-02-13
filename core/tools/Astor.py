@@ -73,7 +73,7 @@ class Astor(Tool):
 		logPath = os.path.join(project.logPath, str(id), self.name, "stdout.log.full")
 		logFile = file(logPath, 'w')
 		print cmd
-			subprocess.call(cmd, shell=True, stdout=logFile)
+		subprocess.call(cmd, shell=True, stdout=logFile)
 		with open(logPath) as data_file:
 			log = data_file.read()
 			slittedLog = log.split('----SUMMARY_EXECUTION---')

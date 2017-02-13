@@ -6,10 +6,13 @@ from core.projects.MathProject import MathProject
 from core.projects.ChartProject import ChartProject
 from core.projects.TimeProject import TimeProject
 from core.projects.ClosureProject import ClosureProject
+from core.projects.MockitoProject import MockitoProject
 
 from core.tools.Ranking import Ranking
 from core.tools.NopolPC import NopolPC
 from core.tools.NopolC import NopolC
+from core.tools.Nopol import Nopol
+from core.tools.Brutpol import Brutpol
 from core.tools.BrutpolPC import BrutpolPC
 from core.tools.BrutpolC import BrutpolC
 from core.tools.Astor import Astor
@@ -39,6 +42,7 @@ for project in args.projects:
         projects.append(MathProject())
         projects.append(TimeProject())
         projects.append(ClosureProject())
+        projects.append(MockitoProject())
     elif project.lower() == "chart":
         projects.append(ChartProject())
     elif project.lower() == "lang":
@@ -49,28 +53,27 @@ for project in args.projects:
         projects.append(TimeProject())
     elif project.lower() == "closure":
         projects.append(ClosureProject())
+    elif project.lower() == "mockito":
+        projects.append(MockitoProject())
 
 tools = []
 for tool in args.tools:
     if tool.lower() == "all":
-        tools.append(NopolPC())
-        tools.append(NopolC())
+        tools.append(Nopol())
         tools.append(Astor())
         tools.append(Kali())
         tools.append(BrutpolPC())
         tools.append(BrutpolC())
     elif tool.lower() == "nopol":
-        tools.append(NopolPC())
+        tools.append(Nopol())    
+    elif tool.lower() == "nopolc":
         tools.append(NopolC())
     elif tool.lower() == "nopolpc":
         tools.append(NopolPC())
     elif tool.lower() == "ranking":
-        tools.append(Ranking())    
-    elif tool.lower() == "nopolc":
-        tools.append(NopolC())
+        tools.append(Ranking())
     elif tool.lower() == "brutpol":
-        tools.append(BrutpolPC())
-        tools.append(BrutpolC())
+        tools.append(Brutpol())
     elif tool.lower() == "brutpolpc":
         tools.append(BrutpolPC())
     elif tool.lower() == "brutpolc":
@@ -86,8 +89,16 @@ for project in projects:
     for tool in tools:
         if args.id:
             for id in args.id:
-                task = RunnerTask(tool, project, int(id))
-                tasks.append(task)
+                if "-" in id:
+                    min, max = tuple(int(x) for x in id.split("-"))
+                    for i in range(min, max + 1):
+                        if i > project.nbBugs:
+                            break
+                        task = RunnerTask(tool, project, i)
+                        tasks.append(task)        
+                else:
+                    task = RunnerTask(tool, project, int(id))
+                    tasks.append(task)
         elif args.with_angelic:
             for i in project.angelicValue:
                 task = RunnerTask(tool, project, int(i))
