@@ -16,7 +16,7 @@ from core.projects.ClosureProject import ClosureProject
 reload(sys)
 sys.setdefaultencoding('Cp1252')
 
-tools = ["NopolPC", "NopolC", "BrutpolPC", "BrutpolC", "Genprog", "Kali"]
+tools = ["Nopol", "Brutpol", "Genprog", "Kali"]
 
 ignored = {
     "Math": [99],
@@ -72,6 +72,8 @@ def get_tool_name(tool):
     elif tool == "NopolC" and "NopolPC" in tools:
         return None
     elif tool == "BrutpolPC" and "BrutpolC" in tools:
+        tool = "DynaMoth"
+    elif tool == "Brutpol":
         tool = "DynaMoth"
     elif tool == "NopolPC" and "NopolC" in tools:
         tool = "Nopol"
@@ -308,13 +310,20 @@ for project in sorted(os.listdir(root)):
 
 
                 body += "## Patch #%d %s \n\n" % (patchCount, tool)
-                if "operations" in resultsBug[tool] or "patches" in resultsBug[tool]:
-                    toolKey = "operations" if "operations" in resultsBug[tool] else "patches"
+                if "operations" in resultsBug[tool] or "patches" in resultsBug[tool] or ("patch" in resultsBug[tool] and type(resultsBug[tool]['patch']) == list):
+                    toolKey = "operations"
+                    if "patches" in resultsBug[tool]:
+                        toolKey = "patches"
+                    elif "patch" in resultsBug[tool]:
+                        toolKey = "patch"
                     for patch in resultsBug[tool][toolKey][0:1]:
-                        lineKey = "%s:%d" % (patch['patchLocation']["className"], patch['patchLocation']["line"])
-                        pathLocation = get_patch_location(patch['patchLocation']["className"],
+                        keyClassname = "className"
+                        if "class" in patch['patchLocation']:
+                            keyClassname = "class"
+                        lineKey = "%s:%d" % (patch['patchLocation'][keyClassname], patch['patchLocation']["line"])
+                        pathLocation = get_patch_location(patch['patchLocation'][keyClassname],
                                                           patch['patchLocation']["line"])
-                        if 'suspicious' in ranking and lineKey in ranking['suspicious']:
+                        if ranking is not None and 'suspicious' in ranking and lineKey in ranking['suspicious']:
                             ranks = ranking['suspicious'][lineKey]['rank']
                             body += "%s (Suspicious rank: " % pathLocation
                             for rank in ranks:

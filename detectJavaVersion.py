@@ -8,10 +8,10 @@ from core.Config import conf
 
 rootProjects = conf.projectsRoot
 rootProjectsData = os.path.join(conf.defects4jRepairRoot, "src", "python", "data", "projects")
-for project in os.listdir(rootProjects):
+for project in sorted(os.listdir(rootProjects)):
     projectPath = os.path.join(rootProjects, project)
     projectDataPath = os.path.join(rootProjectsData, project.lower() + ".json")
-    print projectDataPath
+    print(project)
     if not os.path.exists(projectDataPath):
         continue
     if os.path.isfile(projectPath):
@@ -20,15 +20,15 @@ for project in os.listdir(rootProjects):
     data = json.load(data_file)
     if "complianceLevel" not in data:
         data["complianceLevel"] = {}
-    for bugId in os.listdir(projectPath):
+    for bugId in sorted(os.listdir(projectPath)):
         bugPath = os.path.join(projectPath, bugId)
         if os.path.isfile(bugPath):
             continue
-        propertiesPath = os.path.join(bugPath, "default.properties")
+        propertiesPath = os.path.join(bugPath, "pom.xml")
         if not os.path.exists(propertiesPath):
             propertiesPath = os.path.join(bugPath, "project.properties")
             if not os.path.exists(propertiesPath):
-                propertiesPath = os.path.join(bugPath, "pom.xml")
+                propertiesPath = os.path.join(bugPath, "default.properties")
                 if not os.path.exists(propertiesPath):
                     propertiesPath = os.path.join(bugPath, "ant/build.xml")
                     if not os.path.exists(propertiesPath):
@@ -38,7 +38,7 @@ for project in os.listdir(rootProjects):
         target = None
         source = None
         if propertiesPath:
-            print propertiesPath
+            
             with open(propertiesPath) as file:
                 for line in file:
                     m = re.search('compile.target ?= ?1.([0-9])', line)
@@ -72,10 +72,11 @@ for project in os.listdir(rootProjects):
                                 m = re.search('name="ant.build.javac.source" value="1.([0-9])"', line)
                                 if m:
                                     source = m.group(1)
+            print bugId, source, target
         if target is None:
             target = "7"
             source = "7"
-        data["complianceLevel"][int(bugId.split("_")[1])] = {
+        data["complianceLevel"][bugId.split("_")[1]] = {
             "target": int(target),
             "source": int(source)
         }
